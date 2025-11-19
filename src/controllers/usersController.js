@@ -79,4 +79,44 @@ const deleteUser = (req, res) => {
   res.status(204).end();
 };
 
-export { getAllUsers, getUserById, createUser, updateUser, deleteUser };
+// Gestionnaire de route pour supprimer plusieurs users
+const deleteMultipleUsers = (req, res) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids)) {
+    return res.status(400).json({ error: "ids must be an array" });
+  }
+
+  const deletedIds = [];
+  const notFoundIds = [];
+
+  ids.forEach((id) => {
+    const numId = Number(id);
+    if (Number.isNaN(numId)) {
+      return;
+    }
+
+    const userIndex = users.findIndex((user) => user.id === numId);
+
+    if (userIndex !== -1) {
+      users.splice(userIndex, 1);
+      deletedIds.push(numId);
+    } else {
+      notFoundIds.push(numId);
+    }
+  });
+
+  res.json({
+    deleted: deletedIds,
+    notFound: notFoundIds,
+  });
+};
+
+export {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  deleteMultipleUsers,
+};

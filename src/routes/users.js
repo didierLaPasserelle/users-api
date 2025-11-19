@@ -7,6 +7,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  deleteMultipleUsers,
 } from "../controllers/usersController.js";
 
 // Route GET /users : récupère tous les users
@@ -20,6 +21,9 @@ router.post("/", createUser);
 
 // Route PUT /users/:id : met à jour un user
 router.put("/:id", updateUser);
+
+// Route DELETE /users : supprime plusieurs users (doit être avant /:id)
+router.delete("/", deleteMultipleUsers);
 
 // Route DELETE /users/:id : supprime un user
 router.delete("/:id", deleteUser);
