@@ -38,4 +38,32 @@ const createUser = (req, res) => {
   res.status(201).json(newUser);
 };
 
-export { getAllUsers, getUserById, createUser };
+// Gestionnaire de route pour mettre à jour un user
+const updateUser = (req, res) => {
+    
+  const id = Number(req.params.id);
+
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ error: "User id must be a number" });
+  }
+
+  const userIndex = users.findIndex((user) => user.id === id);
+
+  if (userIndex === -1) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const { firstName, age, city } = req.body;
+
+  users[userIndex] = {
+    id,
+    // firstName,
+    // age,
+    // city,
+    ...req.body,
+  };
+
+  res.json(users[userIndex]);
+};
+
+export { getAllUsers, getUserById, createUser, updateUser };
