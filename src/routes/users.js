@@ -6,6 +6,7 @@ import {
   getUserById,
   createUser,
   updateUser,
+  deleteUser,
 } from "../controllers/usersController.js";
 
 // Route GET /users : récupère tous les users
@@ -19,5 +20,8 @@ router.post("/", createUser);
 
 // Route PUT /users/:id : met à jour un user
 router.put("/:id", updateUser);
+
+// Route DELETE /users/:id : supprime un user
+router.delete("/:id", deleteUser);
 
 export default router;
