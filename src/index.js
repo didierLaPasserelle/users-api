@@ -45,6 +45,26 @@ const getUserById = (req, res) => {
 // Route GET /users/:id : récupère un user précis
 app.get("/users/:id", getUserById);
 
+// Gestionnaire de route pour créer un user
+const createUser = (req, res) => {
+  
+  const { firstName, age, city } = req.body;
+
+  const newUser = {
+    id: Date.now(),
+    firstName,
+    age,
+    city,
+  };
+
+  users.push(newUser); // update de la BDD
+
+  res.status(201).json(newUser);
+};
+
+// Route POST /users : crée un user
+app.post("/users", createUser);
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
