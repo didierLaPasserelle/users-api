@@ -24,6 +24,10 @@ const getUserById = (req, res) => {
 
 // Gestionnaire de route pour créer un user
 const createUser = (req, res) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: "Request body is required" });
+  }
+
   const { firstName, age, city } = req.body;
 
   const newUser = {
@@ -44,6 +48,10 @@ const updateUser = (req, res) => {
 
   if (Number.isNaN(id)) {
     return res.status(400).json({ error: "User id must be a number" });
+  }
+
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: "Request body is required" });
   }
 
   const userIndex = users.findIndex((user) => user.id === id);
@@ -81,6 +89,12 @@ const deleteUser = (req, res) => {
 
 // Gestionnaire de route pour supprimer plusieurs users
 const deleteMultipleUsers = (req, res) => {
+  if (!req.body || !req.body.ids) {
+    return res
+      .status(400)
+      .json({ error: "ids property is required in request body" });
+  }
+
   const { ids } = req.body;
 
   if (!Array.isArray(ids)) {
