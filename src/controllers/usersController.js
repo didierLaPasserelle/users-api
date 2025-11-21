@@ -1,49 +1,63 @@
-import users from "../data/users.js";
+import { supabase } from "../config/supabase.js";
 
 // Gestionnaire de route pour lister tous les users
-const getAllUsers = (req, res) => {
-  res.json(users);
+const getAllUsers = async (req, res) => {
+  const { data, error } = await supabase.from("users").select("*");
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json(data);
 };
 
 // Gestionnaire de route pour récupérer un user par id
-const getUserById = (req, res) => {
+const getUserById = async (req, res) => {
   const id = Number(req.params.id);
 
   if (Number.isNaN(id)) {
     return res.status(400).json({ error: "User id must be a number" });
   }
 
-  const user = users.find((user) => user.id === id);
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
+  if (error) {
+    if (error.code === "PGRST116") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.status(500).json({ error: error.message });
   }
 
-  res.json(user);
+  res.json(data);
 };
 
 // Gestionnaire de route pour créer un user
-const createUser = (req, res) => {
+const createUser = async (req, res) => {
   if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: "Request body is required" });
   }
 
   const { firstName, age, city } = req.body;
 
-  const newUser = {
-    id: Date.now(),
-    firstName,
-    age,
-    city,
-  };
+  const { data, error } = await supabase
+    .from("users")
+    .insert([{ firstName, age, city }])
+    .select()
+    .single();
 
-  users.push(newUser);
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
-  res.status(201).json(newUser);
+  res.status(201).json(data);
 };
 
 // Gestionnaire de route pour mettre à jour un user
-const updateUser = (req, res) => {
+const updateUser = async (req, res) => {
   const id = Number(req.params.id);
 
   if (Number.isNaN(id)) {
@@ -54,41 +68,54 @@ const updateUser = (req, res) => {
     return res.status(400).json({ error: "Request body is required" });
   }
 
-  const userIndex = users.findIndex((user) => user.id === id);
+  const { data, error } = await supabase
+    .from("users")
+    .update(req.body)
+    .eq("id", id)
+    .select()
+    .single();
 
-  if (userIndex === -1) {
-    return res.status(404).json({ error: "User not found" });
+  if (error) {
+    if (error.code === "PGRST116") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.status(500).json({ error: error.message });
   }
 
-  users[userIndex] = {
-    id,
-    ...req.body,
-  };
-
-  res.json(users[userIndex]);
+  res.json(data);
 };
 
 // Gestionnaire de route pour supprimer un user
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
   const id = Number(req.params.id);
 
   if (Number.isNaN(id)) {
     return res.status(400).json({ error: "User id must be a number" });
   }
 
-  const userIndex = users.findIndex((user) => user.id === id);
+  // Vérifier si le user existe avant de supprimer
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", id)
+    .single();
 
-  if (userIndex === -1) {
+  if (!existingUser) {
     return res.status(404).json({ error: "User not found" });
   }
 
-  users.splice(userIndex, 1);
+  // Supprimer le user
+  const { error } = await supabase.from("users").delete().eq("id", id);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
   res.status(204).end();
 };
 
 // Gestionnaire de route pour supprimer plusieurs users
-const deleteMultipleUsers = (req, res) => {
+const deleteMultipleUsers = async (req, res) => {
   if (!req.body || !req.body.ids) {
     return res
       .status(400)
@@ -101,27 +128,39 @@ const deleteMultipleUsers = (req, res) => {
     return res.status(400).json({ error: "ids must be an array" });
   }
 
-  const deletedIds = [];
-  const notFoundIds = [];
+  // Filtrer les IDs valides
+  const validIds = ids.filter((id) => !Number.isNaN(Number(id))).map(Number);
 
-  ids.forEach((id) => {
-    const numId = Number(id);
-    if (Number.isNaN(numId)) {
-      return;
+  if (validIds.length === 0) {
+    return res.json({
+      deleted: [],
+      notFound: [],
+    });
+  }
+
+  // Vérifier quels users existent avant suppression
+  const { data: existingUsers } = await supabase
+    .from("users")
+    .select("id")
+    .in("id", validIds);
+
+  const existingIds = existingUsers.map((user) => user.id);
+  const notFoundIds = validIds.filter((id) => !existingIds.includes(id));
+
+  // Supprimer les users qui existent
+  if (existingIds.length > 0) {
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .in("id", existingIds);
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
     }
-
-    const userIndex = users.findIndex((user) => user.id === numId);
-
-    if (userIndex !== -1) {
-      users.splice(userIndex, 1);
-      deletedIds.push(numId);
-    } else {
-      notFoundIds.push(numId);
-    }
-  });
+  }
 
   res.json({
-    deleted: deletedIds,
+    deleted: existingIds,
     notFound: notFoundIds,
   });
 };
